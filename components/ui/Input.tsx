@@ -28,8 +28,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               "w-full bg-bg-card border border-border rounded-xl px-4 py-3 text-sm text-text-primary placeholder:text-text-muted",
               "focus:outline-none focus:ring-2 focus:ring-accent-red/40 focus:border-accent-red/50",
               "transition-all duration-200",
-              icon && "pl-11",
-              error && "border-red-500/50 focus:ring-red-500/30",
+              !!icon && "pl-11",
+              !!error && "border-red-500/50 focus:ring-red-500/30",
               className
             )}
             {...props}
