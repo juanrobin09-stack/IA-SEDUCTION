@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { createServerClient } from "@supabase/ssr";
 import Stripe from "stripe";
 
@@ -14,10 +14,10 @@ export async function POST(req: NextRequest) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(
+    event = getStripe().webhooks.constructEvent(
       body,
       sig,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      process.env.STRIPE_WEBHOOK_SECRET ?? ""
     );
   } catch {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
@@ -35,36 +35,27 @@ export async function POST(req: NextRequest) {
       const userId = session.metadata?.userId;
       const plan = session.metadata?.plan;
       const customerId = session.customer as string;
-
       if (userId && plan) {
         await supabase
           .from("profiles")
-          .update({
-            plan,
-            stripe_customer_id: customerId,
-            subscription_status: "active"
-          })
+          .update({ plan, stripe_customer_id: customerId, subscription_status: "active" })
           .eq("id", userId);
       }
       break;
     }
-
     case "customer.subscription.deleted": {
       const subscription = event.data.object as Stripe.Subscription;
       const customerId = subscription.customer as string;
-
       await supabase
         .from("profiles")
         .update({ plan: "free", subscription_status: "canceled" })
         .eq("stripe_customer_id", customerId);
       break;
     }
-
     case "customer.subscription.updated": {
       const subscription = event.data.object as Stripe.Subscription;
       const status = subscription.status;
       const customerId = subscription.customer as string;
-
       if (status === "active") {
         await supabase
           .from("profiles")

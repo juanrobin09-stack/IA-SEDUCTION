@@ -1,6 +1,13 @@
 import Stripe from "stripe";
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+let _stripe: Stripe | null = null;
+
+export function getStripe(): Stripe {
+  if (!_stripe) {
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "placeholder");
+  }
+  return _stripe;
+}
 
 export const PLANS = {
   free: {
@@ -12,7 +19,7 @@ export const PLANS = {
   premium: {
     name: "Premium",
     price: 29,
-    priceId: process.env.STRIPE_PREMIUM_PRICE_ID!,
+    priceId: process.env.STRIPE_PREMIUM_PRICE_ID ?? "",
     messages: -1,
     features: [
       "Messages illimités",
@@ -26,7 +33,7 @@ export const PLANS = {
   vip: {
     name: "VIP",
     price: 99,
-    priceId: process.env.STRIPE_VIP_PRICE_ID!,
+    priceId: process.env.STRIPE_VIP_PRICE_ID ?? "",
     messages: -1,
     features: [
       "Tout Premium",

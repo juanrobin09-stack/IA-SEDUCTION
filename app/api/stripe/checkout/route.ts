@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { stripe, PLANS } from "@/lib/stripe";
+import { getStripe, PLANS } from "@/lib/stripe";
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,25 +19,15 @@ export async function POST(req: NextRequest) {
 
     const planConfig = PLANS[plan as "premium" | "vip"];
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
       customer_email: user.email,
-      line_items: [
-        {
-          price: planConfig.priceId,
-          quantity: 1
-        }
-      ],
-      metadata: {
-        userId: user.id,
-        plan
-      },
+      line_items: [{ price: planConfig.priceId, quantity: 1 }],
+      metadata: { userId: user.id, plan },
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings`,
-      subscription_data: {
-        metadata: { userId: user.id, plan }
-      }
+      subscription_data: { metadata: { userId: user.id, plan } }
     });
 
     return NextResponse.json({ url: session.url });
