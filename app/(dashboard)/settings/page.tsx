@@ -49,7 +49,8 @@ export default function SettingsPage() {
         .single();
 
       setProfile({
-        ...data,
+        plan: data?.plan ?? "free",
+        daily_messages_used: data?.daily_messages_used ?? 0,
         email: user.email,
         full_name: user.user_metadata?.full_name
       });
