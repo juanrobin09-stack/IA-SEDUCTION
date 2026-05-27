@@ -1,65 +1,39 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-type CookieEntry = { name: string; value: string; options: Record<string, unknown> };
-
-export async function middleware(request: NextRequest) {
-  // Skip middleware if Supabase is not configured
-  if (
-    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  ) {
-    return NextResponse.next({ request });
-  }
-
+/**
+ * Middleware minimal — auth protection is handled in server layouts.
+ * This only does a lightweight cookie-based redirect to avoid flash.
+ */
+export function middleware(request: NextRequest) {
   try {
-    let supabaseResponse = NextResponse.next({ request });
+    const { pathname } = request.nextUrl;
 
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll();
-          },
-          setAll(cookiesToSet: CookieEntry[]) {
-            cookiesToSet.forEach(({ name, value }) =>
-              request.cookies.set(name, value)
-            );
-            supabaseResponse = NextResponse.next({ request });
-            cookiesToSet.forEach(({ name, value, options }) =>
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              supabaseResponse.cookies.set(name, value, options as any)
-            );
-          }
-        }
-      }
+    const isDashboard = pathname.startsWith("/dashboard");
+    const isAuthPage = pathname === "/login" || pathname === "/signup";
+
+    if (!isDashboard && !isAuthPage) {
+      return NextResponse.next();
+    }
+
+    // Detect Supabase session via cookie presence (works without SDK)
+    const cookies = request.cookies.getAll();
+    const hasSession = cookies.some(
+      (c) =>
+        (c.name.includes("supabase") && c.name.includes("auth")) ||
+        c.name.startsWith("sb-")
     );
 
-    const { data: { user } } = await supabase.auth.getUser();
-
-    const isDashboardRoute = request.nextUrl.pathname.startsWith("/dashboard");
-    const isAuthRoute =
-      request.nextUrl.pathname.startsWith("/login") ||
-      request.nextUrl.pathname.startsWith("/signup");
-
-    if (isDashboardRoute && !user) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/login";
-      return NextResponse.redirect(url);
+    if (isDashboard && !hasSession) {
+      return NextResponse.redirect(new URL("/login", request.url));
     }
 
-    if (isAuthRoute && user) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/dashboard/chat";
-      return NextResponse.redirect(url);
+    if (isAuthPage && hasSession) {
+      return NextResponse.redirect(new URL("/dashboard/chat", request.url));
     }
 
-    return supabaseResponse;
+    return NextResponse.next();
   } catch {
-    // Middleware error — let request pass through to avoid 500
-    return NextResponse.next({ request });
+    return NextResponse.next();
   }
 }
 
