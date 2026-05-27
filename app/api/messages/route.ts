@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { openai } from "@/lib/openai";
+import { getOpenAI } from "@/lib/openai";
 import { MESSAGE_SYSTEM_PROMPT } from "@/prompts/coach";
 
 export async function POST(req: NextRequest) {
@@ -26,7 +26,7 @@ Contexte: ${context || "Aucun contexte supplémentaire"}
 
 Génère un message par style demandé.`;
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAI().chat.completions.create({
       model: "gpt-4o",
       messages: [
         { role: "system", content: MESSAGE_SYSTEM_PROMPT },
