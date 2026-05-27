@@ -3,8 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import { openai } from "@/lib/openai";
 import { COACH_SYSTEM_PROMPT } from "@/prompts/coach";
 
-export const runtime = "edge";
-
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
